@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
 use svanill::{encrypt, generate_iv, generate_salt};
+extern crate rpassword;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -36,18 +37,26 @@ fn main() {
 
     match opt.cmd {
         Command::ENC { iterations } => {
+            let pass1: String = rpassword::read_password_from_tty(Some("Password: ")).unwrap();
+
+            if pass1.is_empty() {
+                eprintln!("Error: the password cannot be empty");
+                std::process::exit(1);
+            }
+
+            let pass2: String =
+                rpassword::read_password_from_tty(Some("Confirm Password: ")).unwrap();
+
+            if pass1 != pass2 {
+                eprintln!("Error: the two passwords do not match.");
+                std::process::exit(2);
+            }
+
             let b_salt = generate_salt();
             let b_iv = generate_iv();
             println!(
                 "{}",
-                encrypt(
-                    "XXX TODO content",
-                    "XXX TODO password",
-                    iterations,
-                    b_salt,
-                    b_iv
-                )
-                .unwrap()
+                encrypt("XXX TODO content", &pass1, iterations, b_salt, b_iv).unwrap()
             );
         }
         Command::DEC {} => unimplemented!("Decryption is not ready yet."),
