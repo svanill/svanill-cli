@@ -35,6 +35,11 @@ enum Command {
 fn main() {
     let opt = Opt::from_args();
 
+    let content: String = std::fs::read_to_string(opt.input).unwrap_or_else(|e: std::io::Error| {
+        eprintln!("Couldn't read the input file: error was: {}", e);
+        std::process::exit(1);
+    });
+
     match opt.cmd {
         Command::ENC { iterations } => {
             let pass1: String = rpassword::read_password_from_tty(Some("Password: ")).unwrap();
@@ -56,7 +61,7 @@ fn main() {
             let b_iv = generate_iv();
             println!(
                 "{}",
-                encrypt("XXX TODO content", &pass1, iterations, b_salt, b_iv).unwrap()
+                encrypt(&content, &pass1, iterations, b_salt, b_iv).unwrap()
             );
         }
         Command::DEC {} => unimplemented!("Decryption is not ready yet."),
