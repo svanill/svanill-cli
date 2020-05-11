@@ -113,5 +113,5 @@ fn export(aad: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<String, String> {
 
     let data: Vec<u8> = [aad, iv, ciphertext].concat();
 
-    Ok(hex.encode(&data))
+    Ok(hex.encode(&data).trim().to_string())
 }
