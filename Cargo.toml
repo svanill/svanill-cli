@@ -1,8 +1,11 @@
 [package]
-name = "svanill-cli"
+name = "svanill"
 version = "0.1.0"
 authors = ["Riccardo Attilio Galli <riccardo@sideralis.org>"]
 edition = "2018"
 
 [dependencies]
 structopt = "0.3.14"
+ring = "0.16.13"
+data-encoding = "2.2.0"
+lazy_static = "1.4.0"
