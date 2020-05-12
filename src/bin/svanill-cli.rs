@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
-use svanill::{encrypt, generate_iv, generate_salt};
+use svanill::crypto::{encrypt, generate_iv, generate_salt};
 extern crate rpassword;
 
 #[cfg(target_family = "unix")]
