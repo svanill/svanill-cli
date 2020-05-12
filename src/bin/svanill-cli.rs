@@ -1,10 +1,8 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
 use svanill::crypto::{encrypt, generate_iv, generate_salt};
+use svanill::proc_utils::attempt_to_lock_memory;
 extern crate rpassword;
-
-#[cfg(target_family = "unix")]
-use nix::sys::mman::{mlockall, MlockAllFlags};
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -38,11 +36,7 @@ enum Command {
 fn main() {
     let opt = Opt::from_args();
 
-    // Attempt to lock all memory to prevent the system from
-    // writing it on swap in unfortunate circumstances.
-    // Best effort: if we don't have permissions to do it, move on.
-    #[cfg(target_family = "unix")]
-    let _ = mlockall(MlockAllFlags::all());
+    attempt_to_lock_memory();
 
     let content: String = std::fs::read_to_string(opt.input).unwrap_or_else(|e: std::io::Error| {
         eprintln!("Couldn't read the input file: error was: {}", e);
