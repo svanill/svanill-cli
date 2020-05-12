@@ -105,12 +105,15 @@ pub fn encrypt(
     export(&v_aad, &b_iv, &in_out)
 }
 
-fn export(aad: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<String, String> {
+fn get_pretty_hexencoder() -> data_encoding::Encoding {
     let mut spec = data_encoding::HEXLOWER.specification();
     spec.wrap.width = 78;
     spec.wrap.separator = String::from("\n");
-    let hex = spec.encoding().unwrap();
+    spec.encoding().unwrap()
+}
 
+fn export(aad: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<String, String> {
+    let hex = get_pretty_hexencoder();
     let data: Vec<u8> = [aad, iv, ciphertext].concat();
 
     Ok(hex.encode(&data).trim().to_string())
