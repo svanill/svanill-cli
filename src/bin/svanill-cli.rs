@@ -1,8 +1,12 @@
+extern crate rpassword;
+
 use std::path::PathBuf;
 use structopt::StructOpt;
 use svanill::crypto::{encrypt, generate_iv, generate_salt};
 use svanill::proc_utils::attempt_to_lock_memory;
-extern crate rpassword;
+
+#[cfg(not(debug_assertions))]
+use svanill::proc_utils::disable_core_dump;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -34,9 +38,12 @@ enum Command {
 }
 
 fn main() {
-    let opt = Opt::from_args();
-
     attempt_to_lock_memory();
+
+    #[cfg(not(debug_assertions))]
+    disable_core_dump().unwrap();
+
+    let opt = Opt::from_args();
 
     let content: String = std::fs::read_to_string(opt.input).unwrap_or_else(|e: std::io::Error| {
         eprintln!("Couldn't read the input file: error was: {}", e);
