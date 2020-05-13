@@ -2,7 +2,7 @@ extern crate rpassword;
 
 use std::path::PathBuf;
 use structopt::StructOpt;
-use svanill::crypto::{encrypt, generate_iv, generate_salt};
+use svanill::crypto::{decrypt, encrypt, generate_iv, generate_salt};
 use svanill::proc_utils::attempt_to_lock_memory;
 
 #[cfg(not(debug_assertions))]
@@ -74,6 +74,18 @@ fn main() {
                 encrypt(&content, &pass1, iterations, b_salt, b_iv).unwrap()
             );
         }
-        Command::DEC {} => unimplemented!("Decryption is not ready yet."),
+        Command::DEC {} => {
+            let pass: String = rpassword::read_password_from_tty(Some("Password: ")).unwrap();
+
+            match decrypt(&content, &pass) {
+                Ok(plaintext) => {
+                    println!("{}", plaintext);
+                }
+                Err(e) => {
+                    eprintln!("{}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
     }
 }

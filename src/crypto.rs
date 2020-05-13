@@ -6,7 +6,7 @@ use ring::aead::BoundKey;
 use ring::rand::SecureRandom;
 use ring::rand::SystemRandom;
 use ring::{digest, pbkdf2};
-use std::num::NonZeroU32;
+use std::{convert::TryInto, num::NonZeroU32};
 
 lazy_static! {
     static ref RNG: SystemRandom = ring::rand::SystemRandom::new();
@@ -114,4 +114,69 @@ fn export(aad: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<String, String> {
     let data: Vec<u8> = [aad, iv, ciphertext].concat();
 
     Ok(hex.encode(&data).trim().to_string())
+}
+
+pub fn decrypt(content: &str, password: &str) -> Result<String, String> {
+    let content: String = content.chars().filter(|c| !c.is_whitespace()).collect();
+    let v_content = data_encoding::HEXLOWER_PERMISSIVE
+        .decode(content.as_bytes())
+        .or(Err(
+            "Couldn't decode plaintext, not in hex format".to_string()
+        ))?;
+
+    // version format, 1 byte
+    let b_version: &[u8; 1] = v_content[0..1].try_into().expect("Content is too short");
+
+    if b_version.get(0) != Some(&0u8) {
+        return Err(format!(
+            "Unsupported format: {}. Did you encrypt the data with a different (newer) version of Svanill?",
+            u8::from_be_bytes(b_version.to_owned())
+        ));
+    }
+
+    // We need at least 33 bytes for ancillary data, plus the ciphertext
+    if v_content.len() < 34 {
+        return Err("Content is too short".into());
+    }
+
+    let b_content: &[u8] = v_content.as_ref();
+
+    // iterations, 4 bytes
+    let b_iterations: &[u8; 4] = b_content[1..5].try_into().unwrap();
+    // salt, 16 bytes
+    let b_salt: &[u8; 16] = b_content[5..21].try_into().unwrap();
+    // iv, 12 bytes
+    let b_iv: &[u8; 12] = b_content[21..33].try_into().unwrap();
+    // cyphertext|tag (rest)
+    let b_ciphertext = &v_content[33..];
+
+    // aad
+    let b_aad: &[u8; 21] = b_content[..21].try_into().unwrap();
+
+    // Derive PBKDF2 key
+    let pbkdf2_key = derive_pbkdf2_hmac_sha256(
+        password.as_bytes(),
+        u32::from_be_bytes(b_iterations.to_owned()),
+        b_salt,
+    );
+
+    // Setup iv for Ring use
+    let nonce = ring::aead::Nonce::assume_unique_for_key(b_iv.to_owned());
+
+    // Setup the additional data
+    let aad: aead::Aad<Vec<u8>> = aead::Aad::from(b_aad.to_vec());
+
+    // Generate a decryption key
+    let unbound_key = aead::UnboundKey::new(&aead::AES_256_GCM, &pbkdf2_key).unwrap();
+    let opening_key = aead::LessSafeKey::new(unbound_key);
+
+    // Ring uses the same input variable as output
+    let mut in_out = b_ciphertext.to_vec();
+
+    // Decrypt data into in_out variable
+    let decrypted_data = opening_key
+        .open_in_place(nonce, aad, &mut in_out)
+        .or(Err("Cannot decrypt (wrong password?)".to_string()))?;
+
+    Ok(String::from_utf8(decrypted_data.to_vec()).expect("Expected utf-8"))
 }
