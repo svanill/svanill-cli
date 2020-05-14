@@ -18,6 +18,17 @@ pub fn disable_core_dump() -> Result<(), nix::Error> {
         rlim_cur: 0,
         rlim_max: 0,
     };
+
     let res = unsafe { libc::setrlimit64(libc::RLIMIT_CORE, &rlim as *const _) };
+    errno::Errno::result(res).map(drop)?;
+
+    // Set the state of the "dumpable" flag, which determines whether core dumps
+    // are produced for the calling process upon delivery of a signal whose
+    // default behavior is to produce a core dump.
+    //
+    // Processes that are not dumpable can not be attached
+    // via `ptrace(2)` `PTRACE_ATTACH`; see `ptrace(2)` for further details.
+    const SUID_DUMP_DISABLE: i32 = 0;
+    let res = unsafe { libc::prctl(libc::PR_SET_DUMPABLE, SUID_DUMP_DISABLE) };
     errno::Errno::result(res).map(drop)
 }
