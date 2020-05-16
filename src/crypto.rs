@@ -30,19 +30,19 @@ fn derive_pbkdf2_hmac_sha256(
     pbkdf2_key
 }
 
-pub const IV_BYTES_LENGTH: usize = 12;
-pub type IV = [u8; IV_BYTES_LENGTH];
+const IV_BYTES_LENGTH: usize = 12;
+type IV = [u8; IV_BYTES_LENGTH];
 
-pub fn generate_iv() -> IV {
+fn generate_iv() -> IV {
     let mut nonce_vec = [0u8; IV_BYTES_LENGTH];
     RNG.fill(&mut nonce_vec).unwrap();
     nonce_vec
 }
 
-pub const SALT_BYTES_LENGTH: usize = 16;
-pub type SALT = [u8; SALT_BYTES_LENGTH];
+const SALT_BYTES_LENGTH: usize = 16;
+type SALT = [u8; SALT_BYTES_LENGTH];
 
-pub fn generate_salt() -> SALT {
+fn generate_salt() -> SALT {
     let mut nonce_vec = [0u8; SALT_BYTES_LENGTH];
     RNG.fill(&mut nonce_vec).unwrap();
     nonce_vec
@@ -62,14 +62,11 @@ impl aead::NonceSequence for OneNonceSequence {
     }
 }
 
-pub fn encrypt(
-    plaintext: &str,
-    password: &str,
-    iterations: u32,
-    b_salt: SALT,
-    b_iv: IV,
-) -> Result<String, String> {
+pub fn encrypt(plaintext: &str, password: &str, iterations: u32) -> Result<String, String> {
     let b_plaintext: &[u8] = plaintext.as_bytes();
+    let b_salt = generate_salt();
+    let b_iv = generate_iv();
+
     encrypt_v0(
         SvanillBoxV0::new(iterations, b_salt, b_iv),
         b_plaintext,
@@ -77,7 +74,7 @@ pub fn encrypt(
     )
 }
 
-pub fn encrypt_v0(sb: SvanillBoxV0, plaintext: &[u8], password: &str) -> Result<String, String> {
+fn encrypt_v0(sb: SvanillBoxV0, plaintext: &[u8], password: &str) -> Result<String, String> {
     // Derive PBKDF2 key
     let pbkdf2_key = derive_pbkdf2_hmac_sha256(password.as_bytes(), sb.iterations, &sb.salt);
 

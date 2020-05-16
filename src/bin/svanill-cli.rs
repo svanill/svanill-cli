@@ -2,7 +2,7 @@ extern crate rpassword;
 
 use std::path::PathBuf;
 use structopt::StructOpt;
-use svanill::crypto::{decrypt, encrypt, generate_iv, generate_salt};
+use svanill::crypto::{decrypt, encrypt};
 use svanill::proc_utils::attempt_to_lock_memory;
 
 #[cfg(not(debug_assertions))]
@@ -67,12 +67,7 @@ fn main() {
                 std::process::exit(2);
             }
 
-            let b_salt = generate_salt();
-            let b_iv = generate_iv();
-            println!(
-                "{}",
-                encrypt(&content, &pass1, iterations, b_salt, b_iv).unwrap()
-            );
+            println!("{}", encrypt(&content, &pass1, iterations).unwrap());
         }
         Command::DEC {} => {
             let pass: String = rpassword::read_password_from_tty(Some("Password: ")).unwrap();
