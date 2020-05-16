@@ -1,12 +1,13 @@
 extern crate data_encoding;
 extern crate ring;
 
+use crate::format::{SvanillBox, SvanillBoxV0};
 use ring::aead;
 use ring::aead::BoundKey;
 use ring::rand::SecureRandom;
 use ring::rand::SystemRandom;
 use ring::{digest, pbkdf2};
-use std::{convert::TryInto, num::NonZeroU32};
+use std::num::NonZeroU32;
 
 lazy_static! {
     static ref RNG: SystemRandom = ring::rand::SystemRandom::new();
@@ -68,24 +69,26 @@ pub fn encrypt(
     b_salt: SALT,
     b_iv: IV,
 ) -> Result<String, String> {
+    let b_plaintext: &[u8] = plaintext.as_bytes();
+    encrypt_v0(
+        SvanillBoxV0::new(iterations, b_salt, b_iv),
+        b_plaintext,
+        password,
+    )
+}
+
+pub fn encrypt_v0(sb: SvanillBoxV0, plaintext: &[u8], password: &str) -> Result<String, String> {
     // Derive PBKDF2 key
-    let pbkdf2_key = derive_pbkdf2_hmac_sha256(password.as_bytes(), iterations, &b_salt);
+    let pbkdf2_key = derive_pbkdf2_hmac_sha256(password.as_bytes(), sb.iterations, &sb.salt);
 
-    // Gather additional data
-    let b_version = 0u8.to_be_bytes();
-    let b_iterations = iterations.to_be_bytes();
-
-    let mut v_aad = Vec::<u8>::with_capacity(b_version.len() + b_iterations.len() + b_salt.len());
-    v_aad.extend_from_slice(&b_version);
-    v_aad.extend_from_slice(&b_iterations);
-    v_aad.extend_from_slice(&b_salt);
-    let aad = aead::Aad::from(v_aad.clone());
+    // Setup the additional data
+    let aad = aead::Aad::from(sb.aad);
 
     // Ring uses the same input variable as output
-    let mut in_out = plaintext.as_bytes().to_vec();
+    //let mut in_out = &mut sb.content;
 
     // IV must be used at most once per encryption
-    let iv_as_nonce = aead::Nonce::assume_unique_for_key(b_iv);
+    let iv_as_nonce = aead::Nonce::assume_unique_for_key(sb.iv);
     let nonce_sequence = OneNonceSequence::new(iv_as_nonce);
 
     // Generate an encryption key
@@ -93,110 +96,28 @@ pub fn encrypt(
         aead::UnboundKey::new(&aead::AES_256_GCM, &pbkdf2_key).expect("Could not load the key");
     let mut sealing_key = aead::SealingKey::new(unbound_key, nonce_sequence);
 
+    let mut in_out = plaintext.to_vec();
+
     // Encrypt data into in_out variable
     sealing_key
         .seal_in_place_append_tag(aad, &mut in_out)
         .unwrap();
 
     // Box everything in a readable format
-    export(&v_aad, &b_iv, &in_out)
-}
-
-fn get_pretty_hexencoder() -> data_encoding::Encoding {
-    let mut spec = data_encoding::HEXLOWER.specification();
-    spec.wrap.width = 78;
-    spec.wrap.separator = String::from("\n");
-    spec.encoding().unwrap()
-}
-
-fn export(aad: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<String, String> {
-    let hex = get_pretty_hexencoder();
-    let data: Vec<u8> = [aad, iv, ciphertext].concat();
-
-    Ok(hex.encode(&data).trim().to_string())
-}
-
-pub struct SvanillBoxV0 {
-    #[allow(dead_code)]
-    version: u8,
-    iterations: u32,
-    salt: [u8; 16],
-    iv: [u8; 12],
-    aad: [u8; 21],
-    content: Vec<u8>,
-    #[allow(dead_code)]
-    alg_key: ring::pbkdf2::Algorithm,
-    #[allow(dead_code)]
-    alg_cipher: &'static aead::Algorithm,
-}
-
-pub enum SvanillBox {
-    V0(SvanillBoxV0),
-}
-
-fn hex_to_bytes(hex_string: &str) -> Result<Vec<u8>, String> {
-    // remove spaces
-    let hex_data: Vec<u8> = hex_string
-        .bytes()
-        .filter(|c| !c.is_ascii_whitespace())
-        .collect();
-
-    // decode
-    data_encoding::HEXLOWER_PERMISSIVE
-        .decode(&hex_data)
-        .or(Err("Decode error: not hex format".to_string()))
-}
-
-fn deserialize(data: Vec<u8>) -> Result<SvanillBox, String> {
-    if data.len() == 0 {
-        return Err("Deserialize error: empty string".to_string());
-    }
-
-    match data[0] {
-        0 => deserialize_v0(data),
-        _ =>  Err(format!(
-            "Unsupported format: {}. Did you encrypt the data with a different (newer) version of Svanill?",
-            data[0]
-        )),
-    }
-}
-
-fn deserialize_v0(data: Vec<u8>) -> Result<SvanillBox, String> {
-    // We need at least 33 bytes for ancillary data, plus the ciphertext
-    if data.len() < 34 {
-        return Err("Content is too short".into());
-    }
-
-    // iterations, 4 bytes
-    let b_iterations: [u8; 4] = data[1..5].try_into().unwrap();
-
-    Ok(SvanillBox::V0(SvanillBoxV0 {
-        version: 0,
-        iterations: u32::from_be_bytes(b_iterations),
-        // salt, 16 bytes
-        salt: data[5..21].try_into().unwrap(),
-        // iv, 12 bytes
-        iv: data[21..33].try_into().unwrap(),
-        // aad, first 21 bytes
-        aad: data[0..21].try_into().unwrap(),
-        // cyphertext|tag
-        content: data[33..].to_vec(),
-        alg_key: pbkdf2::PBKDF2_HMAC_SHA256,
-        alg_cipher: &aead::AES_256_GCM,
-    }))
+    Ok(sb.serialize(&in_out))
 }
 
 pub fn decrypt(maybe_hex_string: &str, password: &str) -> Result<String, String> {
-    let data: SvanillBox = deserialize(hex_to_bytes(maybe_hex_string)?)?;
+    let (metadata, ciphertext) = SvanillBox::deserialize(maybe_hex_string)?;
 
-    match data {
-        SvanillBox::V0(x) => decrypt_v0(x, password),
+    match metadata {
+        SvanillBox::V0(sb) => decrypt_v0(sb, &ciphertext, password.as_bytes()),
     }
 }
 
-fn decrypt_v0(sb: SvanillBoxV0, password: &str) -> Result<String, String> {
+fn decrypt_v0(sb: SvanillBoxV0, ciphertext: &[u8], b_password: &[u8]) -> Result<String, String> {
     // Derive PBKDF2 key
-    let pbkdf2_key = derive_pbkdf2_hmac_sha256(password.as_bytes(), sb.iterations, &sb.salt);
+    let pbkdf2_key = derive_pbkdf2_hmac_sha256(b_password, sb.iterations, &sb.salt);
 
     // Setup iv for Ring use
     let nonce = ring::aead::Nonce::assume_unique_for_key(sb.iv);
@@ -209,7 +130,7 @@ fn decrypt_v0(sb: SvanillBoxV0, password: &str) -> Result<String, String> {
     let opening_key = aead::LessSafeKey::new(unbound_key);
 
     // Ring uses the same input variable as output
-    let mut in_out = sb.content.to_vec();
+    let mut in_out = ciphertext.to_vec();
 
     // Decrypt data into in_out variable
     let decrypted_data = opening_key
