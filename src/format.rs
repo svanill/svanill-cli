@@ -1,4 +1,3 @@
-use data_encoding;
 use ring::aead;
 use ring::pbkdf2;
 use std::convert::TryInto;
@@ -92,16 +91,12 @@ impl SvanillBox {
     pub fn deserialize(maybe_hex_string: &str) -> Result<(SvanillBox, Vec<u8>), String> {
         let data = hex_to_bytes(maybe_hex_string)?;
 
-        if data.len() == 0 {
-            return Err("Deserialize error: empty string".to_string());
-        }
-
-        match data[0] {
-            0 => SvanillBoxV0::deserialize(&data).and_then(|(x,y)| Ok((x.into(),y))),
-            _ => Err(format!(
-                "Unsupported format: {}. Did you encrypt the data with a different (newer) version of Svanill?",
-                data[0]
+        match data.get(0) {
+            Some(0) => SvanillBoxV0::deserialize(&data).and_then(|(x,y)| Ok((x.into(),y))),
+            Some(v) => Err(format!(
+                "Unsupported format: {}. Did you encrypt the data with a different (newer) version of Svanill?",v
             )),
+            None => Err("Deserialize error: empty string".to_string()),
         }
     }
 }
@@ -116,5 +111,5 @@ fn hex_to_bytes(hex_string: &str) -> Result<Vec<u8>, String> {
     // decode
     data_encoding::HEXLOWER_PERMISSIVE
         .decode(&hex_data)
-        .or(Err("Decode error: not hex format".to_string()))
+        .or_else(|_| Err("Decode error: not hex format".to_string()))
 }

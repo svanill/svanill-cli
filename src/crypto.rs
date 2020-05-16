@@ -1,6 +1,3 @@
-extern crate data_encoding;
-extern crate ring;
-
 use crate::format::{SvanillBox, SvanillBoxV0};
 use ring::aead;
 use ring::aead::BoundKey;
@@ -132,7 +129,7 @@ fn decrypt_v0(sb: SvanillBoxV0, ciphertext: &[u8], b_password: &[u8]) -> Result<
     // Decrypt data into in_out variable
     let decrypted_data = opening_key
         .open_in_place(nonce, aad, &mut in_out)
-        .or(Err("Cannot decrypt (wrong password?)".to_string()))?;
+        .or_else(|_| Err("Cannot decrypt (wrong password?)".to_string()))?;
 
     Ok(String::from_utf8(decrypted_data.to_vec()).expect("Expected utf-8"))
 }
