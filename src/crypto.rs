@@ -6,6 +6,19 @@ use ring::rand::SystemRandom;
 use ring::{digest, pbkdf2};
 use std::num::NonZeroU32;
 
+use anyhow::Result;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum CryptoError {
+    #[error("decryption failure (wrong password?)")]
+    CannotDecrypt,
+    #[error("encryption failure")]
+    CannotEncrypt,
+    #[error("cannot correctly load the encryption key")]
+    LoadEncryptionKey,
+}
+
 lazy_static! {
     static ref RNG: SystemRandom = ring::rand::SystemRandom::new();
 }
@@ -59,7 +72,7 @@ impl aead::NonceSequence for OneNonceSequence {
     }
 }
 
-pub fn encrypt(plaintext: &str, password: &str, iterations: u32) -> Result<String, String> {
+pub fn encrypt(plaintext: &str, password: &str, iterations: u32) -> Result<String, CryptoError> {
     let b_plaintext: &[u8] = plaintext.as_bytes();
     let b_salt = generate_salt();
     let b_iv = generate_iv();
@@ -71,7 +84,7 @@ pub fn encrypt(plaintext: &str, password: &str, iterations: u32) -> Result<Strin
     )
 }
 
-fn encrypt_v0(sb: SvanillBoxV0, plaintext: &[u8], password: &str) -> Result<String, String> {
+fn encrypt_v0(sb: SvanillBoxV0, plaintext: &[u8], password: &str) -> Result<String, CryptoError> {
     // Derive PBKDF2 key
     let pbkdf2_key = derive_pbkdf2_hmac_sha256(password.as_bytes(), sb.iterations, &sb.salt);
 
@@ -86,8 +99,8 @@ fn encrypt_v0(sb: SvanillBoxV0, plaintext: &[u8], password: &str) -> Result<Stri
     let nonce_sequence = OneNonceSequence::new(iv_as_nonce);
 
     // Generate an encryption key
-    let unbound_key =
-        aead::UnboundKey::new(&aead::AES_256_GCM, &pbkdf2_key).expect("Could not load the key");
+    let unbound_key = aead::UnboundKey::new(&aead::AES_256_GCM, &pbkdf2_key)
+        .or(Err(CryptoError::LoadEncryptionKey))?;
     let mut sealing_key = aead::SealingKey::new(unbound_key, nonce_sequence);
 
     let mut in_out = plaintext.to_vec();
@@ -95,21 +108,25 @@ fn encrypt_v0(sb: SvanillBoxV0, plaintext: &[u8], password: &str) -> Result<Stri
     // Encrypt data into in_out variable
     sealing_key
         .seal_in_place_append_tag(aad, &mut in_out)
-        .unwrap();
+        .or(Err(CryptoError::CannotEncrypt))?;
 
     // Box everything in a readable format
     Ok(sb.serialize(&in_out))
 }
 
-pub fn decrypt(maybe_hex_string: &str, password: &str) -> Result<String, String> {
+pub fn decrypt(maybe_hex_string: &str, password: &str) -> Result<String> {
     let (metadata, ciphertext) = SvanillBox::deserialize(maybe_hex_string)?;
 
     match metadata {
-        SvanillBox::V0(sb) => decrypt_v0(sb, &ciphertext, password.as_bytes()),
+        SvanillBox::V0(sb) => Ok(decrypt_v0(sb, &ciphertext, password.as_bytes())?),
     }
 }
 
-fn decrypt_v0(sb: SvanillBoxV0, ciphertext: &[u8], b_password: &[u8]) -> Result<String, String> {
+fn decrypt_v0(
+    sb: SvanillBoxV0,
+    ciphertext: &[u8],
+    b_password: &[u8],
+) -> Result<String, CryptoError> {
     // Derive PBKDF2 key
     let pbkdf2_key = derive_pbkdf2_hmac_sha256(b_password, sb.iterations, &sb.salt);
 
@@ -129,7 +146,7 @@ fn decrypt_v0(sb: SvanillBoxV0, ciphertext: &[u8], b_password: &[u8]) -> Result<
     // Decrypt data into in_out variable
     let decrypted_data = opening_key
         .open_in_place(nonce, aad, &mut in_out)
-        .or_else(|_| Err("Cannot decrypt (wrong password?)".to_string()))?;
+        .or(Err(CryptoError::CannotDecrypt))?;
 
     Ok(String::from_utf8(decrypted_data.to_vec()).expect("Expected utf-8"))
 }

@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use ring::aead;
 use ring::pbkdf2;
 use std::convert::TryInto;
@@ -53,10 +54,10 @@ impl SvanillBoxV0 {
         hex.encode(&self.to_vec(ciphertext)).trim().to_string()
     }
 
-    pub fn deserialize(data: &[u8]) -> Result<(SvanillBoxV0, Vec<u8>), String> {
+    pub fn deserialize(data: &[u8]) -> Result<(SvanillBoxV0, Vec<u8>)> {
         // We need at least 33 bytes for ancillary data, plus the ciphertext
         if data.len() < 34 {
-            return Err("Content is too short".into());
+            return Err(anyhow!("Content is too short"));
         }
 
         // iterations, 4 bytes
@@ -88,20 +89,20 @@ impl From<SvanillBoxV0> for SvanillBox {
 }
 
 impl SvanillBox {
-    pub fn deserialize(maybe_hex_string: &str) -> Result<(SvanillBox, Vec<u8>), String> {
+    pub fn deserialize(maybe_hex_string: &str) -> Result<(SvanillBox, Vec<u8>)> {
         let data = hex_to_bytes(maybe_hex_string)?;
 
         match data.get(0) {
             Some(0) => SvanillBoxV0::deserialize(&data).and_then(|(x,y)| Ok((x.into(),y))),
-            Some(v) => Err(format!(
+            Some(v) => Err(anyhow!(
                 "Unsupported format: {}. Did you encrypt the data with a different (newer) version of Svanill?",v
             )),
-            None => Err("Deserialize error: empty string".to_string()),
+            None => Err(anyhow!("Deserialize error: empty string")),
         }
     }
 }
 
-fn hex_to_bytes(hex_string: &str) -> Result<Vec<u8>, String> {
+fn hex_to_bytes(hex_string: &str) -> Result<Vec<u8>> {
     // remove spaces
     let hex_data: Vec<u8> = hex_string
         .bytes()
@@ -111,5 +112,5 @@ fn hex_to_bytes(hex_string: &str) -> Result<Vec<u8>, String> {
     // decode
     data_encoding::HEXLOWER_PERMISSIVE
         .decode(&hex_data)
-        .or_else(|_| Err("Decode error: not hex format".to_string()))
+        .or_else(|_| Err(anyhow!("Decode error: not hex format")))
 }

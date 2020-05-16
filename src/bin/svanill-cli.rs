@@ -1,5 +1,6 @@
 extern crate rpassword;
 
+use anyhow::Result;
 use std::path::PathBuf;
 use structopt::StructOpt;
 use svanill::crypto::{decrypt, encrypt};
@@ -37,7 +38,7 @@ enum Command {
     DEC {},
 }
 
-fn main() {
+fn main() -> Result<()> {
     let is_memory_locked = attempt_to_lock_memory();
 
     #[cfg(not(debug_assertions))]
@@ -63,15 +64,14 @@ fn main() {
                 std::process::exit(1);
             }
 
-            let pass2: String =
-                rpassword::read_password_from_tty(Some("Confirm Password: ")).unwrap();
+            let pass2: String = rpassword::read_password_from_tty(Some("Confirm Password: "))?;
 
             if pass1 != pass2 {
                 eprintln!("Error: the two passwords do not match.");
                 std::process::exit(2);
             }
 
-            println!("{}", encrypt(&content, &pass1, iterations).unwrap());
+            println!("{}", encrypt(&content, &pass1, iterations)?);
         }
         Command::DEC {} => {
             let pass: String = rpassword::read_password_from_tty(Some("Password: ")).unwrap();
@@ -86,5 +86,7 @@ fn main() {
                 }
             }
         }
-    }
+    };
+
+    Ok(())
 }
