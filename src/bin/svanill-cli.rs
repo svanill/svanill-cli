@@ -38,12 +38,16 @@ enum Command {
 }
 
 fn main() {
-    attempt_to_lock_memory();
+    let is_memory_locked = attempt_to_lock_memory();
 
     #[cfg(not(debug_assertions))]
     disable_core_dump().unwrap();
 
     let opt = Opt::from_args();
+
+    if opt.debug && !is_memory_locked {
+        eprintln!("WARN: Couldn't lock memory, it could potentially end up in swap file");
+    }
 
     let content: String = std::fs::read_to_string(opt.input).unwrap_or_else(|e: std::io::Error| {
         eprintln!("Couldn't read the input file: error was: {}", e);

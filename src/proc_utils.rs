@@ -8,9 +8,12 @@ use nix::sys::mman::{mlockall, MlockAllFlags};
  * writing it on swap in unfortunate circumstances.
  * Best effort: if we don't have permissions to do it, move on.
  */
-pub fn attempt_to_lock_memory() {
-    #[cfg(target_family = "unix")]
-    let _ = mlockall(MlockAllFlags::all());
+pub fn attempt_to_lock_memory() -> bool {
+    if cfg!(target_family = "unix") {
+        mlockall(MlockAllFlags::all()).is_ok()
+    } else {
+        false
+    }
 }
 
 pub fn disable_core_dump() -> Result<(), nix::Error> {
