@@ -103,18 +103,13 @@ fn main() -> Result<()> {
                 None => std::io::stdout().write_all(&b_encrypted_data)?,
             }
         }
-        Command::DEC {} => match decrypt(&content, &pass1) {
-            Ok(b_plaintext) => {
-                match opt.output {
-                    Some(path) => File::create(path)?.write_all(&b_plaintext)?,
-                    None => std::io::stdout().write_all(&b_plaintext)?,
-                };
+        Command::DEC {} => {
+            let b_plaintext = decrypt(&content, &pass1)?;
+            match opt.output {
+                Some(path) => File::create(path)?.write_all(&b_plaintext)?,
+                None => std::io::stdout().write_all(&b_plaintext)?,
             }
-            Err(e) => {
-                eprintln!("{}", e);
-                std::process::exit(1);
-            }
-        },
+        }
     };
 
     Ok(())
