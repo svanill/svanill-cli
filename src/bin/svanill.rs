@@ -23,16 +23,16 @@ struct Opt {
     /// Activate debug mode
     #[structopt(short, long)]
     debug: bool,
-    /// Input file, stdin if not present
-    #[structopt(name = "input file", parse(from_os_str))]
+    /// Input file, use stdin if not present
+    #[structopt(short = "i", name = "input file", parse(from_os_str))]
     input: Option<PathBuf>,
-    /// Output file, stdout if not present
-    #[structopt(short = "o", parse(from_os_str))]
+    /// Output file, use stdout if not present
+    #[structopt(short = "o", name = "output file", parse(from_os_str))]
     output: Option<PathBuf>,
     #[structopt(subcommand)]
     cmd: Command,
     #[structopt(short = "p")]
-    /// Password file (useful if you run Svanill without a TTY")
+    /// Password file (will prompt for password if not provided)
     pw_filepath: Option<PathBuf>,
 }
 
