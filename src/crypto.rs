@@ -72,21 +72,24 @@ impl aead::NonceSequence for OneNonceSequence {
     }
 }
 
-pub fn encrypt(plaintext: &str, password: &str, iterations: u32) -> Result<String, CryptoError> {
-    let b_plaintext: &[u8] = plaintext.as_bytes();
+pub fn encrypt(b_plaintext: &[u8], password: &str, iterations: u32) -> Result<String, CryptoError> {
     let b_salt = generate_salt();
     let b_iv = generate_iv();
 
     encrypt_v0(
         SvanillBoxV0::new(iterations, b_salt, b_iv),
         b_plaintext,
-        password,
+        password.as_bytes(),
     )
 }
 
-fn encrypt_v0(sb: SvanillBoxV0, plaintext: &[u8], password: &str) -> Result<String, CryptoError> {
+fn encrypt_v0(
+    sb: SvanillBoxV0,
+    b_plaintext: &[u8],
+    password: &[u8],
+) -> Result<String, CryptoError> {
     // Derive PBKDF2 key
-    let pbkdf2_key = derive_pbkdf2_hmac_sha256(password.as_bytes(), sb.iterations, &sb.salt);
+    let pbkdf2_key = derive_pbkdf2_hmac_sha256(password, sb.iterations, &sb.salt);
 
     // Setup the additional data
     let aad = aead::Aad::from(sb.aad);
@@ -103,7 +106,7 @@ fn encrypt_v0(sb: SvanillBoxV0, plaintext: &[u8], password: &str) -> Result<Stri
         .or(Err(CryptoError::LoadEncryptionKey))?;
     let mut sealing_key = aead::SealingKey::new(unbound_key, nonce_sequence);
 
-    let mut in_out = plaintext.to_vec();
+    let mut in_out = b_plaintext.to_vec();
 
     // Encrypt data into in_out variable
     sealing_key
@@ -114,7 +117,7 @@ fn encrypt_v0(sb: SvanillBoxV0, plaintext: &[u8], password: &str) -> Result<Stri
     Ok(sb.serialize(&in_out))
 }
 
-pub fn decrypt(maybe_hex_string: &str, password: &str) -> Result<String> {
+pub fn decrypt(maybe_hex_string: &[u8], password: &str) -> Result<Vec<u8>> {
     let (metadata, ciphertext) = SvanillBox::deserialize(maybe_hex_string)?;
 
     match metadata {
@@ -126,7 +129,7 @@ fn decrypt_v0(
     sb: SvanillBoxV0,
     ciphertext: &[u8],
     b_password: &[u8],
-) -> Result<String, CryptoError> {
+) -> Result<Vec<u8>, CryptoError> {
     // Derive PBKDF2 key
     let pbkdf2_key = derive_pbkdf2_hmac_sha256(b_password, sb.iterations, &sb.salt);
 
@@ -148,5 +151,6 @@ fn decrypt_v0(
         .open_in_place(nonce, aad, &mut in_out)
         .or(Err(CryptoError::CannotDecrypt))?;
 
-    Ok(String::from_utf8(decrypted_data.to_vec()).expect("Expected utf-8"))
+    // Return decrytped_data, not in_out (it can be longer than the decrypted data)
+    Ok(decrypted_data.to_vec())
 }

@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use ring::aead;
 use ring::pbkdf2;
 use std::convert::TryInto;
+use std::iter::Iterator;
 
 fn get_pretty_hexencoder() -> data_encoding::Encoding {
     let mut spec = data_encoding::HEXLOWER.specification();
@@ -89,7 +90,7 @@ impl From<SvanillBoxV0> for SvanillBox {
 }
 
 impl SvanillBox {
-    pub fn deserialize(maybe_hex_string: &str) -> Result<(SvanillBox, Vec<u8>)> {
+    pub fn deserialize(maybe_hex_string: &[u8]) -> Result<(SvanillBox, Vec<u8>)> {
         let data = hex_to_bytes(maybe_hex_string)?;
 
         match data.get(0) {
@@ -102,10 +103,11 @@ impl SvanillBox {
     }
 }
 
-fn hex_to_bytes(hex_string: &str) -> Result<Vec<u8>> {
+fn hex_to_bytes(hex_string: &[u8]) -> Result<Vec<u8>> {
     // remove spaces
     let hex_data: Vec<u8> = hex_string
-        .bytes()
+        .iter()
+        .copied()
         .filter(|c| !c.is_ascii_whitespace())
         .collect();
 
