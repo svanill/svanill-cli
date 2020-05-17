@@ -31,8 +31,11 @@ struct Opt {
     output: Option<PathBuf>,
     #[structopt(subcommand)]
     cmd: Command,
-    #[structopt(short = "p")]
-    /// Password file (will prompt for password if not provided)
+    #[structopt(short = "p", env = "SVANILL_PW", hide_env_values = true)]
+    /// Password file
+    pw: Option<String>,
+    #[structopt(long = "pw-from-file", name = "path")]
+    /// Password
     pw_filepath: Option<PathBuf>,
 }
 
@@ -58,9 +61,7 @@ fn main() -> Result<()> {
         eprintln!("WARN: Couldn't lock memory, it could potentially end up in swap file");
     }
 
-    let mut content = Vec::new();
-
-    if !atty::is(Stream::Stdin) && opt.pw_filepath.is_none() {
+    if !atty::is(Stream::Stdin) && opt.pw.is_none() && opt.pw_filepath.is_none() {
         eprintln!("ERROR: if you pipe data to stdin you must pass the password as command option");
         std::process::exit(1);
     }
@@ -69,6 +70,8 @@ fn main() -> Result<()> {
         eprintln!("ERROR: either provide <input file> as arg or pipe data to stdin");
         std::process::exit(1);
     }
+
+    let mut content = Vec::new();
 
     if let Some(content_path) = opt.input {
         let mut f = File::open(&content_path)
@@ -81,14 +84,17 @@ fn main() -> Result<()> {
             .with_context(|| "Couldn't read from STDIN")?;
     }
 
-    let mut got_pw_from_file = false;
-    let pass1 = if let Some(pw_path) = opt.pw_filepath {
+    let mut need_pw_confirm = false;
+
+    let pass1 = if let Some(pw) = opt.pw {
+        pw
+    } else if let Some(pw_path) = opt.pw_filepath {
         let pw_f = File::open(&pw_path)
             .with_context(|| format!("Couldn't read password at: {:?}", &pw_path))?;
         let pw_f = BufReader::new(pw_f);
-        got_pw_from_file = true;
         rpassword::read_password_with_reader(Some(pw_f)).unwrap()
     } else {
+        need_pw_confirm = true;
         rpassword::read_password_from_tty(Some("Password: ")).unwrap()
     };
 
@@ -99,7 +105,7 @@ fn main() -> Result<()> {
                 std::process::exit(1);
             }
 
-            if !got_pw_from_file {
+            if need_pw_confirm {
                 let pass2: String = rpassword::read_password_from_tty(Some("Confirm Password: "))?;
 
                 if pass1 != pass2 {
