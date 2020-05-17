@@ -248,6 +248,7 @@ name = "svanill"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "atty",
  "data-encoding",
  "lazy_static",
  "libc",
