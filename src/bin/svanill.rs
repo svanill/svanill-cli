@@ -1,6 +1,6 @@
 extern crate rpassword;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use atty::Stream;
 use std::fs::File;
 use std::io::BufReader;
@@ -23,9 +23,9 @@ struct Opt {
     /// Activate debug mode
     #[structopt(short, long)]
     debug: bool,
-    /// Input file
+    /// Input file, stdin if not present
     #[structopt(name = "input file", parse(from_os_str))]
-    input: PathBuf,
+    input: Option<PathBuf>,
     /// Output file, stdout if not present
     #[structopt(short = "o", parse(from_os_str))]
     output: Option<PathBuf>,
@@ -58,22 +58,33 @@ fn main() -> Result<()> {
         eprintln!("WARN: Couldn't lock memory, it could potentially end up in swap file");
     }
 
+    let mut content = Vec::new();
+
     if !atty::is(Stream::Stdin) && opt.pw_filepath.is_none() {
-        eprintln!("ERROR: Not a TTY, you must pass the password as command option");
+        eprintln!("ERROR: if you pipe data to stdin you must pass the password as command option");
         std::process::exit(1);
     }
 
-    let mut f = File::open(opt.input)?;
-    let mut content = Vec::new();
-    f.read_to_end(&mut content)
-        .unwrap_or_else(|e: std::io::Error| {
-            eprintln!("Couldn't read the input file: error was: {}", e);
-            std::process::exit(1);
-        });
+    if atty::is(Stream::Stdin) && opt.input.is_none() {
+        eprintln!("ERROR: either provide <input file> as arg or pipe data to stdin");
+        std::process::exit(1);
+    }
+
+    if let Some(content_path) = opt.input {
+        let mut f = File::open(&content_path)
+            .with_context(|| format!("Trying to read input file: {:?}", content_path))?;
+        f.read_to_end(&mut content)
+            .with_context(|| "Couldn't read the input file")?;
+    } else {
+        std::io::stdin()
+            .read_to_end(&mut content)
+            .with_context(|| "Couldn't read from STDIN")?;
+    }
 
     let mut got_pw_from_file = false;
     let pass1 = if let Some(pw_path) = opt.pw_filepath {
-        let pw_f = File::open(pw_path)?;
+        let pw_f = File::open(&pw_path)
+            .with_context(|| format!("Couldn't read password at: {:?}", &pw_path))?;
         let pw_f = BufReader::new(pw_f);
         got_pw_from_file = true;
         rpassword::read_password_with_reader(Some(pw_f)).unwrap()
