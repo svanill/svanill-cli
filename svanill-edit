@@ -1,0 +1,65 @@
+#!/bin/sh
+
+set -eu
+
+if ! command -v svanill ; then
+    echo "Error: could not find \"svanill\" in \$PATH"
+    exit 1
+fi
+
+if [ $# -ne 1 ]; then
+    echo "Usage: svanill-edit <encrypted_file [or new file]>"
+    exit 1
+fi
+
+target_file="$1"
+temp_target_file=$(mktemp)
+
+# On exit, remove the file
+trap "rm $temp_target_file" EXIT
+
+svanill_edit () {
+  first_editing=$1
+  if [ $first_editing -eq 1 -a -f "$target_file" ]; then
+    svanill -i "$target_file" dec > $temp_target_file
+  fi
+
+  editor=""
+  if (which $EDITOR &> /dev/null) ; then
+    editor=$EDITOR
+  elif (which vim &> /dev/null); then
+    editor=vim
+  elif (which vi &> /dev/null); then
+    editor=vi
+  else
+    echo "vim/vi is unavailable."
+    exit 69 # EX_UNAVAILABLE
+  fi
+
+  $editor "$temp_target_file"
+
+  echo "Set and confirm the password to save the file"
+  svanill -i "$temp_target_file" -o "$target_file" enc && RC=$? || RC=$?
+
+  if [ $RC -eq 0 ]; then
+    echo ... done
+    exit 0
+  else
+    echo
+    echo 'File was not saved, what do you want to do?'
+    echo '(C)ontinue edit (default)'
+    echo '(Q)uit and ignore changes'
+    echo '(K)eep UNENCRYPTED temporary file with changes and exit'
+    read -p '=> your choice: ' user_response
+    case $user_response in
+      q|Q)
+        ;;
+      k|K)
+        trap - EXIT
+        echo 'You can find your edits in' $temp_target_file ;;
+      *) svanill_edit 0 ;;
+    esac
+  fi
+}
+
+svanill_edit 1
