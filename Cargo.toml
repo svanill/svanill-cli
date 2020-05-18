@@ -6,6 +6,7 @@ authors = ["Riccardo Attilio Galli <riccardo@sideralis.org>"]
 homepage = "https://svanill.com"
 repository = "https://github.com/svanill/svanill-cli"
 license = "AGPL-3.0-or-later"
+readme = "README.md"
 edition = "2018"
 
 [dependencies]
