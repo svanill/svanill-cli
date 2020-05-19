@@ -46,7 +46,11 @@ enum Command {
         #[structopt(short = "t", long = "iterations", default_value = "100000")]
         iterations: u32,
     },
-    DEC {},
+    DEC {
+        /// Maximum number of key iterations we can afford
+        #[structopt(short = "m", long = "max-iterations", default_value = "500000")]
+        max_iterations: u32,
+    },
 }
 
 fn main() -> Result<()> {
@@ -120,8 +124,8 @@ fn main() -> Result<()> {
                 None => std::io::stdout().write_all(&b_encrypted_data)?,
             }
         }
-        Command::DEC {} => {
-            let b_plaintext = decrypt(&content, &pass1)?;
+        Command::DEC { max_iterations } => {
+            let b_plaintext = decrypt(&content, &pass1, max_iterations)?;
             match opt.output {
                 Some(path) => File::create(path)?.write_all(&b_plaintext)?,
                 None => std::io::stdout().write_all(&b_plaintext)?,

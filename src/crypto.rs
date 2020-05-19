@@ -17,6 +17,8 @@ pub enum CryptoError {
     CannotEncrypt,
     #[error("cannot correctly load the encryption key")]
     LoadEncryptionKey,
+    #[error("iterations necessary to derive the key exceed the allowed amount")]
+    TooManyDeriveKeyIterations,
 }
 
 lazy_static! {
@@ -117,11 +119,16 @@ fn encrypt_v0(
     Ok(sb.serialize(&in_out))
 }
 
-pub fn decrypt(maybe_hex_string: &[u8], password: &str) -> Result<Vec<u8>> {
+pub fn decrypt(maybe_hex_string: &[u8], password: &str, max_iterations: u32) -> Result<Vec<u8>> {
     let (metadata, ciphertext) = SvanillBox::deserialize(maybe_hex_string)?;
 
     match metadata {
-        SvanillBox::V0(sb) => Ok(decrypt_v0(sb, &ciphertext, password.as_bytes())?),
+        SvanillBox::V0(sb) => {
+            if sb.iterations > max_iterations {
+                return Err(From::from(CryptoError::TooManyDeriveKeyIterations));
+            }
+            Ok(decrypt_v0(sb, &ciphertext, password.as_bytes())?)
+        }
     }
 }
 
