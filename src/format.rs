@@ -90,9 +90,7 @@ impl From<SvanillBoxV0> for SvanillBox {
 }
 
 impl SvanillBox {
-    pub fn deserialize(maybe_hex_string: &[u8]) -> Result<(SvanillBox, Vec<u8>)> {
-        let data = hex_to_bytes(maybe_hex_string)?;
-
+    pub fn deserialize(data: &[u8]) -> Result<(SvanillBox, Vec<u8>)> {
         match data.get(0) {
             Some(0) => SvanillBoxV0::deserialize(&data).and_then(|(x,y)| Ok((x.into(),y))),
             Some(v) => Err(anyhow!(
@@ -103,7 +101,7 @@ impl SvanillBox {
     }
 }
 
-fn hex_to_bytes(hex_string: &[u8]) -> Result<Vec<u8>> {
+pub fn hex_to_bytes(hex_string: &[u8]) -> Result<Vec<u8>> {
     // remove spaces
     let hex_data: Vec<u8> = hex_string
         .iter()

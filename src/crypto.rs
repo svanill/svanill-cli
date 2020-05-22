@@ -1,4 +1,4 @@
-use crate::format::{SvanillBox, SvanillBoxV0};
+use crate::format::{hex_to_bytes, SvanillBox, SvanillBoxV0};
 use ring::aead;
 use ring::aead::BoundKey;
 use ring::rand::SecureRandom;
@@ -120,7 +120,8 @@ fn encrypt_v0(
 }
 
 pub fn decrypt(maybe_hex_string: &[u8], password: &str, max_iterations: u32) -> Result<Vec<u8>> {
-    let (metadata, ciphertext) = SvanillBox::deserialize(maybe_hex_string)?;
+    let data = hex_to_bytes(maybe_hex_string)?;
+    let (metadata, ciphertext) = SvanillBox::deserialize(&data)?;
 
     match metadata {
         SvanillBox::V0(sb) => {
