@@ -114,3 +114,46 @@ pub fn hex_to_bytes(hex_string: &[u8]) -> Result<Vec<u8>> {
         .decode(&hex_data)
         .or_else(|_| Err(anyhow!("Decode error: not hex format")))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod hex_to_bytes_tests {
+        use super::*;
+
+        #[test]
+        fn it_converts_hex_to_bytes() {
+            let hexstr = b"0010";
+            let bytes = vec![0, 16];
+            assert_eq!(bytes, hex_to_bytes(hexstr).unwrap());
+        }
+
+        #[test]
+        fn it_is_case_insenstive() {
+            let hexstr = b"a0A0";
+            let bytes = vec![160, 160];
+            assert_eq!(bytes, hex_to_bytes(hexstr).unwrap());
+        }
+
+        #[test]
+        fn it_ignores_whitespaces() {
+            let hexstr = b" 0\r0\n1\n\n\r\n0\n";
+            let bytes = vec![0, 16];
+            assert_eq!(bytes, hex_to_bytes(hexstr).unwrap());
+        }
+
+        #[test]
+        fn it_converts_the_empty_string() {
+            let hexstr = b"";
+            let bytes: Vec<u8> = Vec::new();
+            assert_eq!(bytes, hex_to_bytes(hexstr).unwrap());
+        }
+
+        #[test]
+        fn it_err_on_nonhex_data() {
+            let hexstr = b"foobar";
+            assert!(hex_to_bytes(hexstr).is_err());
+        }
+    }
+}
