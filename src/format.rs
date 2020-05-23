@@ -156,4 +156,90 @@ mod tests {
             assert!(hex_to_bytes(hexstr).is_err());
         }
     }
+
+    mod svanillboxv0_tests {
+        use super::*;
+
+        #[test]
+        fn it_implements_to_vec_with_the_right_sequence() {
+            let iterations = u32::from_be_bytes([1, 1, 1, 1]);
+            let salt = [2; 16];
+            let iv = [3; 12];
+            let sb = SvanillBoxV0::new(iterations, salt, iv);
+            let content = [4; 5];
+
+            let sb_vec = sb.to_vec(&content);
+            assert_eq!(
+                b"01111222222222222222233333333333344444"
+                    .iter()
+                    .map(|x| x - 48) // 48 is ascii ord for char '0'
+                    .collect::<Vec<u8>>(),
+                sb_vec,
+            );
+        }
+
+        #[test]
+        fn it_serializes_to_hex() {
+            let iterations = u32::from_be_bytes([1, 1, 1, 1]);
+            let salt = [2; 16];
+            let iv = [3; 12];
+            let sb = SvanillBoxV0::new(iterations, salt, iv);
+            let content = [4; 9];
+
+            assert_eq!(
+                String::from("000101010102020202020202020202020202020202030303030303030303030303040404040404\n040404"),
+                sb.serialize(&content),
+            );
+        }
+
+        #[test]
+        fn it_deserialize() {
+            let b_version = [0];
+            let b_iterations = [0, 0, 0, 1];
+            let b_salt = [2; 16];
+            let b_iv = [3; 12];
+            let b_orig_content = [4; 9];
+
+            let mut data: Vec<u8> = Vec::with_capacity(42);
+            data.extend_from_slice(&b_version);
+            data.extend_from_slice(&b_iterations);
+            data.extend_from_slice(&b_salt);
+            data.extend_from_slice(&b_iv);
+            data.extend_from_slice(&b_orig_content);
+
+            let (sb, content) = SvanillBoxV0::deserialize(&data).unwrap();
+
+            assert_eq!(0, sb.version);
+            assert_eq!(1, sb.iterations);
+            assert_eq!(b_salt.to_vec(), sb.salt);
+            assert_eq!(b_iv.to_vec(), sb.iv);
+            assert_eq!(b_orig_content.to_vec(), content);
+        }
+    }
+
+    mod svanillbox_tests {
+        use super::*;
+
+        #[test]
+        fn it_deserialize_v0_format() -> Result<()> {
+            let data = hex_to_bytes(b"000000000102020202020202020202020202020202030303030303030303030303040404040404\n040404")?;
+            let (sb, content) = SvanillBox::deserialize(&data)?;
+
+            assert!(match sb {
+                SvanillBox::V0(_) => true,
+            });
+
+            assert_eq!([4u8; 9].to_vec(), content);
+
+            Ok(())
+        }
+
+        #[test]
+        fn it_deserialize_unsupported_format() {
+            let hexstr = String::from("01000000000");
+            let res = SvanillBox::deserialize(hexstr.as_bytes());
+
+            assert!(res.is_err());
+        }
+    }
 }
