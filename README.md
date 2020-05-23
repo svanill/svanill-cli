@@ -1,3 +1,5 @@
+![Continuous integration](https://github.com/svanill/svanill-cli/workflows/Continuous%20integration/badge.svg)
+
 # Svanill (cli)
 
 A command line tool to encrypt/decrypt your sensitive data.
@@ -28,7 +30,9 @@ Beware, to display plaintext in your editor of choice `svanill-edit` will keep a
 
 # How to run the tests
 
-... version 0.1, too many moving parts, next relase should have them.
+```
+cargo test
+```
 
 # Goals
 
