@@ -96,9 +96,6 @@ fn encrypt_v0(
     // Setup the additional data
     let aad = aead::Aad::from(sb.aad);
 
-    // Ring uses the same input variable as output
-    //let mut in_out = &mut sb.content;
-
     // IV must be used at most once per encryption
     let iv_as_nonce = aead::Nonce::assume_unique_for_key(sb.iv);
     let nonce_sequence = OneNonceSequence::new(iv_as_nonce);
@@ -108,6 +105,7 @@ fn encrypt_v0(
         .or(Err(CryptoError::LoadEncryptionKey))?;
     let mut sealing_key = aead::SealingKey::new(unbound_key, nonce_sequence);
 
+    // Ring uses the same input variable as output
     let mut in_out = b_plaintext.to_vec();
 
     // Encrypt data into in_out variable
