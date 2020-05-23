@@ -1,8 +1,24 @@
-use anyhow::{anyhow, Result};
 use ring::aead;
 use ring::pbkdf2;
 use std::convert::TryInto;
 use std::iter::Iterator;
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum HexError {
+    #[error("not in hex format")]
+    CannotDecode,
+}
+
+#[derive(Error, Debug)]
+pub enum SvanillBoxError {
+    #[error("cannot parse, the data is empty")]
+    EmptyString,
+    #[error("encrypted content is too short")]
+    ContentTooShort,
+    #[error("Unsupported format `{0}`. Did you encrypt the data with a different (newer) version of Svanill?")]
+    UnsupportedFormat(u8),
+}
 
 fn get_pretty_hexencoder() -> data_encoding::Encoding {
     let mut spec = data_encoding::HEXLOWER.specification();
@@ -55,10 +71,10 @@ impl SvanillBoxV0 {
         hex.encode(&self.to_vec(ciphertext)).trim().to_string()
     }
 
-    pub fn deserialize(data: &[u8]) -> Result<(SvanillBoxV0, Vec<u8>)> {
+    pub fn deserialize(data: &[u8]) -> Result<(SvanillBoxV0, Vec<u8>), SvanillBoxError> {
         // We need at least 33 bytes for ancillary data, plus the ciphertext
         if data.len() < 34 {
-            return Err(anyhow!("Content is too short"));
+            return Err(SvanillBoxError::ContentTooShort);
         }
 
         // iterations, 4 bytes
@@ -90,18 +106,16 @@ impl From<SvanillBoxV0> for SvanillBox {
 }
 
 impl SvanillBox {
-    pub fn deserialize(data: &[u8]) -> Result<(SvanillBox, Vec<u8>)> {
+    pub fn deserialize(data: &[u8]) -> Result<(SvanillBox, Vec<u8>), SvanillBoxError> {
         match data.get(0) {
-            Some(0) => SvanillBoxV0::deserialize(&data).and_then(|(x,y)| Ok((x.into(),y))),
-            Some(v) => Err(anyhow!(
-                "Unsupported format: {}. Did you encrypt the data with a different (newer) version of Svanill?",v
-            )),
-            None => Err(anyhow!("Deserialize error: empty string")),
+            Some(0) => SvanillBoxV0::deserialize(&data).and_then(|(x, y)| Ok((x.into(), y))),
+            Some(v) => Err(SvanillBoxError::UnsupportedFormat(v.to_owned())),
+            None => Err(SvanillBoxError::EmptyString),
         }
     }
 }
 
-pub fn hex_to_bytes(hex_string: &[u8]) -> Result<Vec<u8>> {
+pub fn hex_to_bytes(hex_string: &[u8]) -> Result<Vec<u8>, HexError> {
     // remove spaces
     let hex_data: Vec<u8> = hex_string
         .iter()
@@ -112,7 +126,7 @@ pub fn hex_to_bytes(hex_string: &[u8]) -> Result<Vec<u8>> {
     // decode
     data_encoding::HEXLOWER_PERMISSIVE
         .decode(&hex_data)
-        .or_else(|_| Err(anyhow!("Decode error: not hex format")))
+        .or_else(|_| Err(HexError::CannotDecode))
 }
 
 #[cfg(test)]
@@ -221,8 +235,8 @@ mod tests {
         use super::*;
 
         #[test]
-        fn it_deserialize_v0_format() -> Result<()> {
-            let data = hex_to_bytes(b"000000000102020202020202020202020202020202030303030303030303030303040404040404\n040404")?;
+        fn it_deserialize_v0_format() -> Result<(), SvanillBoxError> {
+            let data = hex_to_bytes(b"000000000102020202020202020202020202020202030303030303030303030303040404040404\n040404").unwrap();
             let (sb, content) = SvanillBox::deserialize(&data)?;
 
             assert!(match sb {
