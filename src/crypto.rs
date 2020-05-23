@@ -162,3 +162,29 @@ fn decrypt_v0(
     // Return decrytped_data, not in_out (it can be longer than the decrypted data)
     Ok(decrypted_data.to_vec())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_decrypt() -> Result<()> {
+        let encrypted_blob =
+            b"00000186a0a3bae66273a6d918cdfc148934bc765afff80179dd881c2bde91f4e65acb6c3fd7fc
+            db3f08ef07d8d22a0ae951333716d7d5a1c74d41b9";
+
+        let res = decrypt(encrypted_blob, "testpw", 100_000);
+        assert_eq!(b"Hello World".to_vec(), res?);
+        Ok(())
+    }
+    #[test]
+    fn it_encrypt() -> Result<()> {
+        // Without moking Ring::SecureRandom the easiest thing to do is to
+        // feed the encrypt result to decrypt (whose tests are expected to pass)
+        let b_plaintext = b"Hello World";
+        let encrypted_blob = encrypt(b_plaintext, "testpw", 1)?;
+        let res = decrypt(encrypted_blob.as_bytes(), "testpw", 2);
+        assert_eq!(b"Hello World".to_vec(), res?);
+        Ok(())
+    }
+}
