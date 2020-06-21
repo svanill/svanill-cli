@@ -36,9 +36,16 @@ svanill_edit () {
     exit 69 # EX_UNAVAILABLE
   fi
 
+  md5sum_before=$(md5sum "$temp_target_file")
   $editor "$temp_target_file"
+  md5sum_after=$(md5sum "$temp_target_file")
 
-  echo "Set and confirm the password to save the file"
+  if [ "$md5sum_before" == "$md5sum_after" ]; then
+    echo "File unchanged, nothing to do"
+    exit 0
+  fi
+
+  echo "Set and confirm the password to save the file (CTRL-C to exit)"
   svanill -i "$temp_target_file" -o "$target_file" enc && RC=$? || RC=$?
 
   if [ $RC -eq 0 ]; then
