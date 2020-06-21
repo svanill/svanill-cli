@@ -2,13 +2,29 @@
 
 set -eu
 
+print_usage() {
+  echo -e "Usage: $(basename $0) [-r] <file>"
+  echo -e "\nArguments:"
+  echo -e "    <file>  the file to decrypt, edit and encrypt"
+}
+
+# Parse short options
+OPTIND=1
+while getopts ":h" opt
+do
+  case "$opt" in
+    "h") print_usage >&2; exit 0 ;;
+    *) print_usage >&2; exit 1 ;;
+  esac
+done
+shift $(expr $OPTIND - 1) # remove options from positional parameters
+
 if ! command -v svanill ; then
-    echo "Error: could not find \"svanill\" in \$PATH"
+    echo "Error: \"svanill\" not found"
     exit 1
 fi
 
-if [ $# -ne 1 ]; then
-    echo "Usage: svanill-edit <encrypted_file [or new file]>"
+    print_usage
     exit 1
 fi
 
