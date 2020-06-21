@@ -53,17 +53,17 @@ svanill_edit () {
     exit 0
   else
     echo
-    echo 'File was not saved, what do you want to do?'
-    echo '(C)ontinue edit (default)'
-    echo '(Q)uit and ignore changes'
-    echo '(K)eep UNENCRYPTED temporary file with changes and exit'
+    echo 'An error occurred while encrypting the file, what do you want to do?'
+    echo '(C)ontinue editing (default)'
+    echo '(Q)uit and lose the changes'
+    echo '(K)eep an UNENCRYPTED temporary file with the changes and exit'
     read -p '=> your choice: ' user_response
     case $user_response in
       q|Q)
         ;;
       k|K)
         trap - EXIT
-        echo 'You can find your edits in' $temp_target_file ;;
+        echo 'You can find the UNENCRYPTED file here:' $temp_target_file ;;
       *) svanill_edit 0 ;;
     esac
   fi
