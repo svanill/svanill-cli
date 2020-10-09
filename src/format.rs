@@ -108,7 +108,7 @@ impl From<SvanillBoxV0> for SvanillBox {
 impl SvanillBox {
     pub fn deserialize(data: &[u8]) -> Result<(SvanillBox, Vec<u8>), SvanillBoxError> {
         match data.get(0) {
-            Some(0) => SvanillBoxV0::deserialize(&data).and_then(|(x, y)| Ok((x.into(), y))),
+            Some(0) => SvanillBoxV0::deserialize(&data).map(|(x, y)| (x.into(), y)),
             Some(v) => Err(SvanillBoxError::UnsupportedFormat(v.to_owned())),
             None => Err(SvanillBoxError::EmptyString),
         }
@@ -126,7 +126,7 @@ pub fn hex_to_bytes(hex_string: &[u8]) -> Result<Vec<u8>, HexError> {
     // decode
     data_encoding::HEXLOWER_PERMISSIVE
         .decode(&hex_data)
-        .or_else(|_| Err(HexError::CannotDecode))
+        .map_err(|_| HexError::CannotDecode)
 }
 
 #[cfg(test)]
