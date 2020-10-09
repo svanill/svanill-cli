@@ -6,7 +6,7 @@ A command line tool to encrypt/decrypt your sensitive data.
 
 The resulting data has the same format of [Svanill (web)](https://github.com/svanill/svanill), so you can pass data from one tool to the other.
 
-The sync with an external server is not ready yet, but the plan is to be able to optionally sync with [https://api.svanill.com], as Svanill (web) already allows.
+To sync the encrypted data with an external server you can use [svanill-vault-cli](https://github.com/svanill/svanill-vault/tree/master/svanill-vault-cli).
 
 # How to run
 
@@ -20,7 +20,7 @@ svanill -i <input file> -o <output file> dec
 # you can omit input/output file, and use stdin/stdout instead
 ```
 
-If you want to decrypt/open-in-editor/encrypt a file, you may find usefull `svanill-edit`
+If you want to decrypt/open-in-editor/encrypt there is a tool that leverages svanill-cli, `svanill-edit`
 
 ```
 svanill-edit <filename>
@@ -83,12 +83,6 @@ Nothing from decryption is reused for future encryption, to prevent downgrade at
 ## Why not...
 
 Most choices depend on the constraints of [Svanill (web) documentation](https://github.com/svanill/svanill).
-
-# F.A.Q.
-
-## Does it work without an Internet connection?
-
-Yes, you could keep a local copy to encrypt/decrypt data (you would not be able to sync online of course).
 
 # License
 
