@@ -10,20 +10,20 @@ To sync the encrypted data with an external server you can use [svanill-vault-cl
 
 # How to run
 
-```
+```bash
 # encrypt (you will be prompted for the password)
-svanill -i <input file> -o <output file> enc
+svanill -i INPUT_FILE -o OUTPUT_FILE enc
 
 # decrypt (you will be prompted for the password)
-svanill -i <input file> -o <output file> dec
+svanill -i INPUT_FILE -o OUTPUT_FILE dec
 
 # you can omit input/output file, and use stdin/stdout instead
 ```
 
 If you want to decrypt/open-in-editor/encrypt there is a tool that leverages svanill-cli, `svanill-edit`
 
-```
-svanill-edit <filename>
+```bash
+svanill-edit FILENAME
 ```
 
 Beware, to display plaintext in your editor of choice `svanill-edit` will keep a temporary file around, which is removed when the process terminates.
