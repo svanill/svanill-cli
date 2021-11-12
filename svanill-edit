@@ -24,6 +24,7 @@ if ! command -v svanill ; then
     exit 1
 fi
 
+if [ $# -lt 1 ]; then
     print_usage
     exit 1
 fi
