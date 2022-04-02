@@ -3,7 +3,7 @@
 set -eu
 
 print_usage() {
-  echo -e "Usage: $(basename $0) [-r] <file>"
+  echo -e "Usage: $(basename "$0") [-r] <file>"
   echo -e "\nArguments:"
   echo -e "    <file>  the file to decrypt, edit and encrypt"
 }
@@ -38,19 +38,19 @@ temp_target_file="$(mktemp)"
 
 svanill_edit () {
   first_editing=$1
-  if [ $first_editing -eq 1 -a -f "$target_file" ]; then
-    while ! svanill -i "$target_file" dec > $temp_target_file; do
+  if [ "$first_editing" -eq 1 -a -f "$target_file" ]; then
+    while ! svanill -i "$target_file" dec > "$temp_target_file"; do
         true
     done
   fi
 
   editor=""
-  if (which $EDITOR &> /dev/null) ; then
+  if (which "$EDITOR" &> /dev/null) ; then
     editor=$EDITOR
   elif (which vim &> /dev/null); then
-    editor=vim
+    editor="vim"
   elif (which vi &> /dev/null); then
-    editor=vi
+    editor="vi"
   else
     echo "vim/vi is unavailable."
     exit 69 # EX_UNAVAILABLE
@@ -60,7 +60,7 @@ svanill_edit () {
   $editor "$temp_target_file"
   md5sum_after=$(md5sum "$temp_target_file")
 
-  if [ "$md5sum_before" == "$md5sum_after" ]; then
+  if [ "$md5sum_before" = "$md5sum_after" ]; then
     echo "File unchanged, nothing to do"
     exit 0
   fi
@@ -69,7 +69,7 @@ svanill_edit () {
   svanill -i "$temp_target_file" -o "$target_file" enc && RC=$? || RC=$?
 
   if [ $RC -eq 0 ]; then
-    echo ... done
+    echo "... done"
     exit 0
   else
     echo
@@ -83,7 +83,7 @@ svanill_edit () {
         ;;
       k|K)
         trap - EXIT
-        echo 'You can find the UNENCRYPTED file here:' $temp_target_file ;;
+        echo "You can find the UNENCRYPTED file here: $temp_target_file" ;;
       *) svanill_edit 0 ;;
     esac
   fi
