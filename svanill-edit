@@ -46,6 +46,7 @@ svanill_edit () {
   fi
 
   editor=""
+  # shellcheck disable=SC2153
   if (which "$EDITOR" > /dev/null 2>&1) ; then
     editor=$EDITOR
   elif (which vim > /dev/null 2>&1); then
