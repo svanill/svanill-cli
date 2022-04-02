@@ -45,11 +45,11 @@ svanill_edit () {
   fi
 
   editor=""
-  if (which "$EDITOR" &> /dev/null) ; then
+  if (which "$EDITOR" > /dev/null 2>&1) ; then
     editor=$EDITOR
-  elif (which vim &> /dev/null); then
+  elif (which vim > /dev/null 2>&1); then
     editor="vim"
-  elif (which vi &> /dev/null); then
+  elif (which vi > /dev/null 2>&1); then
     editor="vi"
   else
     echo "vim/vi is unavailable."
