@@ -38,7 +38,7 @@ temp_target_file="$(mktemp)"
 
 svanill_edit () {
   first_editing=$1
-  if [ "$first_editing" -eq 1 -a -f "$target_file" ]; then
+  if [ "$first_editing" -eq 1 ] && [ -f "$target_file" ]; then
     while ! svanill -i "$target_file" dec > "$temp_target_file"; do
         true
     done
