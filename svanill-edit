@@ -3,9 +3,10 @@
 set -eu
 
 print_usage() {
-  echo -e "Usage: $(basename "$0") [-r] <file>"
-  echo -e "\nArguments:"
-  echo -e "    <file>  the file to decrypt, edit and encrypt"
+  echo "Usage: $(basename "$0") [-r] <file>"
+  echo
+  echo "Arguments:"
+  echo "    <file>  the file to decrypt, edit and encrypt"
 }
 
 # Parse short options
