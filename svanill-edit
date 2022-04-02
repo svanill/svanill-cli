@@ -30,10 +30,11 @@ if [ $# -lt 1 ]; then
 fi
 
 target_file="$1"
-temp_target_file=$(mktemp)
 
-# On exit, remove the file
-trap "rm $temp_target_file" EXIT
+# On exit, remove the temporary file we are going to create
+trap 'rm -f -- "$temp_target_file"' EXIT
+
+temp_target_file="$(mktemp)"
 
 svanill_edit () {
   first_editing=$1
