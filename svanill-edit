@@ -78,7 +78,8 @@ svanill_edit () {
     echo '(C)ontinue editing (default)'
     echo '(Q)uit and lose the changes'
     echo '(K)eep an UNENCRYPTED temporary file with the changes and exit'
-    read -p '=> your choice: ' user_response
+    printf "=> your choice: "
+    read -r user_response
     case $user_response in
       q|Q)
         ;;
