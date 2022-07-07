@@ -41,12 +41,12 @@ struct Opt {
 
 #[derive(Debug, StructOpt)]
 enum Command {
-    ENC {
+    Enc {
         /// How many iterations should we do to derive the key
         #[structopt(short = "t", long = "iterations", default_value = "100000")]
         iterations: u32,
     },
-    DEC {
+    Dec {
         /// Maximum number of key iterations we can afford
         #[structopt(short = "m", long = "max-iterations", default_value = "500000")]
         max_iterations: u32,
@@ -103,7 +103,7 @@ fn main() -> Result<()> {
     };
 
     match opt.cmd {
-        Command::ENC { iterations } => {
+        Command::Enc { iterations } => {
             if pass1.is_empty() {
                 eprintln!("Error: the password cannot be empty");
                 std::process::exit(1);
@@ -124,7 +124,7 @@ fn main() -> Result<()> {
                 None => std::io::stdout().write_all(&b_encrypted_data)?,
             }
         }
-        Command::DEC { max_iterations } => {
+        Command::Dec { max_iterations } => {
             let b_plaintext = decrypt(&content, &pass1, max_iterations)?;
             match opt.output {
                 Some(path) => File::create(path)?.write_all(&b_plaintext)?,

@@ -108,7 +108,7 @@ impl From<SvanillBoxV0> for SvanillBox {
 impl SvanillBox {
     pub fn deserialize(data: &[u8]) -> Result<(SvanillBox, Vec<u8>), SvanillBoxError> {
         match data.get(0) {
-            Some(0) => SvanillBoxV0::deserialize(&data).map(|(x, y)| (x.into(), y)),
+            Some(0) => SvanillBoxV0::deserialize(data).map(|(x, y)| (x.into(), y)),
             Some(v) => Err(SvanillBoxError::UnsupportedFormat(v.to_owned())),
             None => Err(SvanillBoxError::EmptyString),
         }
