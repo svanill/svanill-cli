@@ -52,9 +52,9 @@ fn generate_iv() -> IV {
 }
 
 const SALT_BYTES_LENGTH: usize = 16;
-type SALT = [u8; SALT_BYTES_LENGTH];
+type Salt = [u8; SALT_BYTES_LENGTH];
 
-fn generate_salt() -> SALT {
+fn generate_salt() -> Salt {
     let mut nonce_vec = [0u8; SALT_BYTES_LENGTH];
     RNG.fill(&mut nonce_vec).unwrap();
     nonce_vec
