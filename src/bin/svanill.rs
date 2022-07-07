@@ -95,11 +95,11 @@ fn main() -> Result<()> {
     } else if let Some(pw_path) = opt.pw_filepath {
         let pw_f = File::open(&pw_path)
             .with_context(|| format!("Couldn't read password at: {:?}", &pw_path))?;
-        let pw_f = BufReader::new(pw_f);
-        rpassword::read_password_with_reader(Some(pw_f)).unwrap()
+        let mut pw_f = BufReader::new(pw_f);
+        rpassword::read_password_from_bufread(&mut pw_f).unwrap()
     } else {
         need_pw_confirm = true;
-        rpassword::read_password_from_tty(Some("Password: ")).unwrap()
+        rpassword::prompt_password("Password: ").unwrap()
     };
 
     match opt.cmd {
@@ -110,7 +110,7 @@ fn main() -> Result<()> {
             }
 
             if need_pw_confirm {
-                let pass2: String = rpassword::read_password_from_tty(Some("Confirm Password: "))?;
+                let pass2: String = rpassword::prompt_password("Confirm Password: ")?;
 
                 if pass1 != pass2 {
                     eprintln!("Error: the two passwords do not match.");
