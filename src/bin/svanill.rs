@@ -79,7 +79,7 @@ fn main() -> Result<()> {
 
     if let Some(content_path) = opt.input {
         let mut f = File::open(&content_path)
-            .with_context(|| format!("Trying to read input file: {:?}", content_path))?;
+            .with_context(|| format!("Trying to read input file: {content_path:?}"))?;
         f.read_to_end(&mut content)
             .with_context(|| "Couldn't read the input file")?;
     } else {
