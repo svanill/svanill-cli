@@ -27,7 +27,7 @@ jobs:
         run: cargo build --release --locked
 
       - name: Bump version and push tag/create release point
-        uses: anothrNick/github-tag-action@1.61.0
+        uses: anothrNick/github-tag-action@1.62.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
