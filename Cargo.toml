@@ -17,6 +17,6 @@ lazy_static = "1.4.0"
 rpassword = "7.3.1"
 nix = { version="0.27.1", features=["mman"] }
 libc = "0.2.151"
-thiserror = "1.0.53"
+thiserror = "1.0.56"
 anyhow = "1.0.78"
 atty = "0.2.14"
