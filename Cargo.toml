@@ -15,7 +15,7 @@ ring = "0.17.7"
 data-encoding = "2.5.0"
 lazy_static = "1.4.0"
 rpassword = "7.3.1"
-nix = { version="0.27.1", features=["mman"] }
+nix = { version="0.28.0", features=["mman"] }
 libc = "0.2.153"
 thiserror = "1.0.57"
 anyhow = "1.0.79"
