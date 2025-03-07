@@ -11,7 +11,7 @@ edition = "2018"
 
 [dependencies]
 structopt = "0.3.26"
-ring = "0.17.11"
+ring = "0.17.12"
 data-encoding = "2.8.0"
 lazy_static = "1.5.0"
 rpassword = "7.3.1"
