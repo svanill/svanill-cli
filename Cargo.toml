@@ -18,5 +18,5 @@ rpassword = "7.3.1"
 nix = { version="0.30.1", features=["mman"] }
 libc = "0.2.175"
 thiserror = "2.0.17"
-anyhow = "1.0.98"
+anyhow = "1.0.100"
 atty = "0.2.14"
